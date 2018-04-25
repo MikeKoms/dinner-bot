@@ -1,4 +1,5 @@
 # Dinner Bot
+[![Build Status](https://travis-ci.org/gpevnev/dinner-bot.svg?branch=master)](https://travis-ci.org/gpevnev/dinner-bot)
 
 Do you usually have problems choosing place for dinner? This bot should help you.
 
