@@ -1,2 +1,2 @@
-class SampleTest extends App {
+class SampleTest {
 }
