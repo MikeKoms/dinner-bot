@@ -49,8 +49,6 @@ class FoursquarePlacesAPI extends VenueJsonSupport {
       uri = Uri(API_REQUEST_PATH).withQuery(Query(params))
     ))
 
-    resp.flatMap(resp => {
-      Unmarshal(resp.entity).to[RespRoot]
-    })
+    resp.flatMap(resp => Unmarshal(resp.entity).to[RespRoot])
   }
 }
