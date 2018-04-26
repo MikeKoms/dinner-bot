@@ -37,6 +37,7 @@ class FoursquarePlacesAPI extends VenueJsonSupport {
                   lng: BigDecimal,
                   radius: Long,
                   category: Option[Category]): Future[RespRoot] = {
+
     val params = Map(
       "client_id" -> CLIENT_ID,
       "client_secret" -> CLIENT_SECRET,
