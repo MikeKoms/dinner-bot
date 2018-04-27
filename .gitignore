@@ -2,4 +2,4 @@
 project/target
 project/boot
 target/
-secret*
+src/main/resources/secrets.conf

@@ -1,10 +1,17 @@
 language: scala
 scala:
 - 2.12.5
+before_script:
+- echo "# Foursquare API
+        foursquare {
+          client_id=$FOURSQUARE_CLIENT_ID
+          client_secret=$FOURSQUARE_CLIENT_SECRET
+        }" > src/main/resources/secrets.conf
 deploy:
   provider: heroku
   api_key:
     secure: XW8crgBEc6d00Fg6GO+3fiwBKJbzw1E0Q29jd8LWXDvT3bHoV8f6O3IjrxmtqyU2Ub3RsKzE6zophB8Uk6hvrAKfC6VoY466xCPsmcelnjQLGsD3coZQNIvuU2vXu9FpnYJlvKIpzWxfqz5JacvpSrXV5w62+eXTAyVzeJ4V2+fBkQSw0QS+orgtSJmscRGM3ICAMxw5zkLTyjcthO46sL0sFSSSq2I58wNo1BstOA285tTNnhDONz9GVQ31JE/XSoCk7GX9sEV+16umn4no4rdo4v5/iJzeWpuc5b6+IaoxSwlO7WSyB10z1StXVBTravn3JAqcfJbpgbFPZpOAZBAc6/ELfOltl9L2j0+5JomHdHBDAABLKsRO2Yl12EMnGJ0yP3HvtsReObVO0qx1g04uKkbp5fohAaoPUr9x8+hKdPoUeEjAld8dsAMNkh6CkGx8bfX7cubbQ/Mp6xe/VvJ6Z86wNM+05QYDwOhyaw4mEVYPCtqtJqedwl0hUdJuEHNKowANAyZCMoGSPIMB+3zLxSZhDNkie4y/EUa4apEzI09cuA7IkmTTpAzwcX8T8nrtEkhSnAsFGL0u3dN7Z9cmFMLvArkd6uio3c1nUC5VKdz+aV7iq2p4uqb0UiBJe2uVLdyBOCH21FeyW3v63eWv0WUu/XkNRYiO5vWAjVs=
+  skip_cleanup: true
   app: dinner-telegram-bot
   on:
     repo: gpevnev/dinner-bot
