@@ -2,11 +2,11 @@ language: scala
 scala:
 - 2.12.5
 before_script:
-- echo "# Foursquare API
-        foursquare {
-          client_id=$FOURSQUARE_CLIENT_ID
-          client_secret=$FOURSQUARE_CLIENT_SECRET
-        }" > src/main/resources/secrets.conf
+- mkdir -p src/main/resources
+- echo "foursquare {" >> src/main/resources/secrets.conf
+- echo "  client_id=$FOURSQUARE_CLIENT_ID" >> src/main/resources/secrets.conf
+- echo "  client_secret=$FOURSQUARE_CLIENT_SECRET" >> src/main/resources/secrets.conf
+- echo "}" >> src/main/resources/secrets.conf
 deploy:
   provider: heroku
   api_key:
