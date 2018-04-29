@@ -9,6 +9,8 @@ object T {
   val users = TableQuery[Users]
   val votes = TableQuery[Votes]
   val pools = TableQuery[Pools]
+  val defaultString = "empty"
+
 }
 
 
@@ -21,7 +23,7 @@ case class User(telegramId: String, privateChatId: String, id: Option[Long] = No
 case class Vote(poolId: Long, userId: Long, choice: String, isVoted: Boolean, id: Option[Long] = None)
   extends Row
 
-case class Pool(creatorId: Long, chatId: String, result: String, isFinished: Boolean, id: Option[Long] = None)
+case class Pool(creatorId: Long, chatId: String, isFinished: Boolean, id: Option[Long] = None)
   extends Row
 
 //Tables
@@ -46,9 +48,7 @@ class Pools(tag: Tag) extends Table[Pool](tag, "POLLS") {
 
   def isFinished = column[Boolean]("ISFINISHED", O.Default(false))
 
-  def result = column[String]("RESULT", O.Default(null))
-
-  def * = (creatorId, chatId, result, isFinished, id.?) <> (Pool.tupled, Pool.unapply)
+  def * = (creatorId, chatId, isFinished, id.?) <> (Pool.tupled, Pool.unapply)
 
   def creator = foreignKey(
     "FK_CREATOR", creatorId, TableQuery[Users])(
@@ -59,7 +59,7 @@ class Pools(tag: Tag) extends Table[Pool](tag, "POLLS") {
 class Votes(tag: Tag) extends Table[Vote](tag, "VOTES") {
   def id = column[Long]("ID", O.AutoInc, O.PrimaryKey)
 
-  def choice = column[String]("CHOICE")
+  def choice = column[String]("CHOICE", O.Default(T.defaultString))
 
   def poolId = column[Long]("POOL_ID")
 
@@ -77,23 +77,3 @@ class Votes(tag: Tag) extends Table[Vote](tag, "VOTES") {
   def pool = foreignKey("FK_POOL", poolId, TableQuery[Pools])(_.id)
 }
 
-
-/*
-case class VoteUser(usrId: Long, voteId: Long)
-class VotesUsers(tag: Tag) extends Table[VoteUser](tag, "VOTES_USERS") {
-  def usrId = column[Long]("USR_ID")
-
-  def voteId = column[Long]("VOTE_ID")
-
-  def pk = primaryKey("primaryKey", (usrId, voteId))
-  def * = (usrId,voteId) <> (VoteUser.tupled,VoteUser.unapply)
-
-  def votesFK = foreignKey("FK_VOTES", voteId, TableQuery[Votes])(
-    votes => votes.id, onDelete = ForeignKeyAction.Cascade)
-
-  def usersFK = foreignKey("FK_USERS", usrId, TableQuery[Users])(
-    users=> users.id, onDelete = ForeignKeyAction.Cascade
-  )
-
-}
-*/
