@@ -28,12 +28,13 @@ case class NotExistingUserAndPool() extends Actions
 
 case class Result(result: String) extends Actions
 
-private case class Empty() extends Actions
 
-object DatabaseApi {
+//for production = "prod"
+class DatabaseApi(dbname: String = "prod") {
   //type Category = String
   import T._
 
+  val db = Database.forConfig(dbname)
 
   /** Create user
     * Return : Future[Created()] or Future[AlreadyCreated()] */
@@ -59,9 +60,11 @@ object DatabaseApi {
   }
 
   /** Create Pool
-    * Return Future[Created] or  Future[AlreadyCreated]  */
+    * Return Future[Created] or  Future[AlreadyCreated]
+    * or NotExistingUser
+    * */
   def createPool(user: User, chatId: String): Future[Actions] = {
-    val mock = Pool(0, chatId,true, None)
+    val mock = Pool(0, chatId, true, None)
     val action = exists(mock).flatMap {
       case false => users.filter(_.telegramId === user.telegramId)
         .map(_.id).result.headOption.flatMap {
@@ -78,9 +81,9 @@ object DatabaseApi {
   /** Update or create vote
     * Return NotExistingUserAndPool() or NotExistingUser()
     * or NotExistingPool() or Completed()  */
-  def voteInsertOrUpdate(user: User, choice: String, pool: Pool, is_voted: Boolean = true): Future[Actions] = {
+  def voteInsertOrUpdate(user: User, choice: String, chatId: String): Future[Actions] = {
     val qUserId = users.filter(_.telegramId === user.telegramId).map(_.id).result.headOption
-    val qPoolId = pools.filter(_.chatId === pool.chatId).map(_.id).result.headOption
+    val qPoolId = pools.filter(_.chatId === chatId).map(_.id).result.headOption
     val zipped = qUserId zip qPoolId
 
     val action = zipped.flatMap {
@@ -88,33 +91,36 @@ object DatabaseApi {
       case (None, _) => DBIO.successful(NotExistingUser())
       case (_, None) => DBIO.successful(NotExistingPool())
       case (Some(userId), Some(poolId)) =>
-        val insertOrUpdate = votes.filter(x => x.poolId === poolId && x.userId === userId)
-          .insertOrUpdate(Vote(poolId, userId, choice, is_voted))
-        insertOrUpdate.map(_ => Completed())
+        for {
+          existing <- votes.filter(v => v.poolId === poolId && v.userId === userId).result.headOption
+          row = existing.map(_.copy(choice = choice)) getOrElse Vote(poolId, userId, choice)
+          result <- votes.insertOrUpdate(row).map(_ => Completed())
+        } yield result
     }
     db.run(action.transactionally)
   }
 
   /** Added vote for user in pool
     * Return Seq[Future [Actions] ]
-    * Possibly Actions view in  voteInsertOrUpdate*/
-  def updatePool(pool: Pool, users_arg: Seq[User]): Seq[Future[Actions]] =
+    * Possibly Actions view in  voteInsertOrUpdate */
+  def updatePool(chatId: String, users_arg: Seq[User]): Seq[Future[Actions]] =
     users_arg.map(user =>
-      voteInsertOrUpdate(user, defaultString, pool, false)
+      voteInsertOrUpdate(user, defaultString, chatId)
     )
 
   //NotVoted,Completed, return users  and his action
   // TODO
-  def getResult(pool: Pool): (Future[Actions], Future[(User, Actions)]) = ???
+  def getResult(chatId: String): (Future[Actions], Future[Seq[(User, Actions)]]) = ???
 
   /** Ignore unvoted  persons and return evaluated result
     * Return: Future[NotExistingPool()] or Future[Result(string)]
+    * **NotExisting could mean that nobody even voted
     * */
-  def forceResult(pool: Pool): Future[Actions] = {
-    val qPoolId = pools.filter(_.chatId === pool.chatId).map(_.id).result.headOption
+  def forceResult(chatId: String): Future[Actions] = {
+    val qPoolId = pools.filter(_.chatId === chatId).map(_.id).result.headOption
     val action = qPoolId.flatMap {
       case Some(poolId) =>
-        votes.filter(x=>x.poolId === poolId && x.choice=!=defaultString)
+        votes.filter(x => x.poolId === poolId && x.choice =!= defaultString)
           .map(_.choice).result
       case None => DBIO.successful(Seq.empty)
     }
@@ -130,20 +136,22 @@ object DatabaseApi {
         x => x.telegramId === telegramId && x.privateChatId === privateChatId)
         .exists.result
 
-    case Vote(poolId, userId, _, _, _) =>
+    case Vote(poolId, userId, _, _) =>
       votes.filter(
         x => x.poolId === poolId && x.userId === userId).exists.result
 
-    case Pool(_, chatId,  _, _) =>
+    case Pool(_, chatId, _, _) =>
       pools.filter(
         x => x.chatId === chatId).exists.result
   }
 
 
   private def createVoteAction(poolId: Long, userId: Long) =
-    votes += Vote(poolId, userId, defaultString, false)
+    votes += Vote(poolId, userId, defaultString)
 
   private def evaluateResult(seq: Seq[String]) =
     seq.groupBy(identity).maxBy(_._2.size)._1
+
+  /// def deleteVote(user:User(),pool:Pool,)
 
 }

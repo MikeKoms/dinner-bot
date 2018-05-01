@@ -5,7 +5,6 @@ import slick.jdbc.H2Profile.api._
 
 // table query
 object T {
-  val db = Database.forConfig("prod")
   val users = TableQuery[Users]
   val votes = TableQuery[Votes]
   val pools = TableQuery[Pools]
@@ -20,7 +19,7 @@ abstract class Row
 case class User(telegramId: String, privateChatId: String, id: Option[Long] = None)
   extends Row
 
-case class Vote(poolId: Long, userId: Long, choice: String, isVoted: Boolean, id: Option[Long] = None)
+case class Vote(poolId: Long, userId: Long, choice: String, id: Option[Long] = None)
   extends Row
 
 case class Pool(creatorId: Long, chatId: String, isFinished: Boolean, id: Option[Long] = None)
@@ -65,9 +64,8 @@ class Votes(tag: Tag) extends Table[Vote](tag, "VOTES") {
 
   def userId = column[Long]("USER_ID")
 
-  def isVoted = column[Boolean]("ISVOTED")
 
-  def * = (poolId, userId, choice, isVoted, id.?) <> (Vote.tupled, Vote.unapply)
+  def * = (poolId, userId, choice, id.?) <> (Vote.tupled, Vote.unapply)
 
   def user = foreignKey(
     "FK_USER", userId, TableQuery[Users])(
