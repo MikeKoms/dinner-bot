@@ -10,7 +10,7 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
-class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures  {
+class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
   implicit val defaultPatience =
     PatienceConfig(timeout = Span(120, Seconds), interval = Span(10, Millis))
 
@@ -34,9 +34,9 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures  {
       pools += Pool(2, "chatid2", false),
       pools += Pool(3, "chatid3", false),
 
-      votes += Vote(1, 1, "chinese" ), //nikita, chatid1
-      votes += Vote(1, 2, "chinese" ), //vova chatid1
-      votes += Vote(2, 3, "france" ), //semen chaid2
+      votes += Vote(1, 1, "chinese"), //nikita, chatid1
+      votes += Vote(1, 2, "chinese"), //vova chatid1
+      votes += Vote(2, 3, "france"), //semen chaid2
       votes += Vote(2, 4, "chinese") //mike chatid2
     )
     Await.result(api.db.run(setup), Duration.Inf)
@@ -80,7 +80,7 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures  {
       result.headOption), Duration.Inf)
     (action, vote) shouldBe(
       Created(),
-      Some(Vote(4, 4, defaultString,  Some(5))))
+      Some(Vote(4, 4, defaultString, Some(5))))
 
   }
 
@@ -162,6 +162,25 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures  {
     api.forceResult("chatid4").futureValue shouldBe Result("italy")
   }
 
+  "Get User by Telegram Id" should "return user" in {
+    api.getUserByTelegramId("nikita").futureValue shouldBe Option(
+      User("nikita", "123", Some(1))
+    )
+  }
+
+  "Get User by Telegram Id when not register " should "return none" in {
+    api.getUserByTelegramId("fake").futureValue shouldBe None
+  }
+  "Get Creator of pool by chatid" should "return user" in {
+    api.getCreatorByChatId("chatid4").futureValue shouldBe Option(
+      User("mike", "010", Some(4))
+    )
+  }
+
+  "Get Creator of not existing pool " should "return none" in {
+    api.getCreatorByChatId("fake").futureValue shouldBe None
+
+  }
 
 
 }

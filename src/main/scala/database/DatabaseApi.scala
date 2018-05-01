@@ -100,6 +100,18 @@ class DatabaseApi(dbname: String = "prod") {
     db.run(action.transactionally)
   }
 
+  /// def deleteVote(user:User(),pool:Pool,) //
+  def getUserByTelegramId(telegramId: String): Future[Option[User]] =
+    db.run(users.filter(_.telegramId === telegramId).result.headOption)
+
+  def getCreatorByChatId(chatId: String): Future[Option[User]] =
+    db.run(
+      pools.filter(_.chatId === chatId).map(_.creatorId).result.headOption.flatMap {
+        case None => DBIO.successful(None)
+        case Some(id) => users.filter(_.id === id).result.headOption
+      }.transactionally)
+
+
   /** Added vote for user in pool
     * Return Seq[Future [Actions] ]
     * Possibly Actions view in  voteInsertOrUpdate */
@@ -107,6 +119,7 @@ class DatabaseApi(dbname: String = "prod") {
     users_arg.map(user =>
       voteInsertOrUpdate(user, defaultString, chatId)
     )
+
 
   //NotVoted,Completed, return users  and his action
   // TODO
@@ -151,7 +164,5 @@ class DatabaseApi(dbname: String = "prod") {
 
   private def evaluateResult(seq: Seq[String]) =
     seq.groupBy(identity).maxBy(_._2.size)._1
-
-  /// def deleteVote(user:User(),pool:Pool,)
 
 }
