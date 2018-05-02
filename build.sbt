@@ -9,6 +9,8 @@ libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.11"
 libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1"
 
 
+libraryDependencies += "info.mukel" %% "telegrambot4s" % "3.0.14"
+
 enablePlugins(FlywayPlugin)
 resolvers += Resolver.jcenterRepo
 

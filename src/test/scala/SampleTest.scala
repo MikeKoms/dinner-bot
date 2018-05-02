@@ -1,4 +1,4 @@
-
+/*
 import database._
 import slick.jdbc.H2Profile.api._
 
@@ -68,3 +68,4 @@ object SampleTest {
   }
 
 }
+*/
