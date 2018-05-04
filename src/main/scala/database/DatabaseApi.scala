@@ -28,6 +28,9 @@ case class NotExistingUserAndPool() extends Actions
 
 case class Result(result: String) extends Actions
 
+case class NotVoted() extends Actions
+
+case class Voted() extends Actions
 
 //for production = "prod"
 class DatabaseApi(dbname: String = "prod") {
@@ -100,6 +103,23 @@ class DatabaseApi(dbname: String = "prod") {
     db.run(action.transactionally)
   }
 
+  /**
+    * Return option users associated to chatId
+    */
+  def getUsersByChatId(chatId: String): Future[Option[Seq[User]]] = db.run(usersByChatIdQ(chatId))
+
+  private def usersByChatIdQ(chatId: String) = {
+    val action = pools.filter(_.chatId === chatId).map(_.id).result.headOption.flatMap {
+      case Some(id) => (
+        for {
+          (user, _) <- users join votes.filter(_.poolId === id) on (_.id === _.userId)
+        } yield (user.telegramId, user.privateChatId)
+        ).result.map(xs => Some(xs.map(x => User(x._1, x._2))))
+      case None => DBIO.successful(None)
+    }
+    action
+  }
+
   /// def deleteVote(user:User(),pool:Pool,) //
   def getUserByTelegramId(telegramId: String): Future[Option[User]] =
     db.run(users.filter(_.telegramId === telegramId).result.headOption)
@@ -120,10 +140,52 @@ class DatabaseApi(dbname: String = "prod") {
       voteInsertOrUpdate(user, defaultString, chatId)
     )
 
+  /**
+    * Delete Pool by id and associated with him votes
+    * return Deleted()/AlreadyDeleted()
+    * Run after you got resutl
+    **/
+  def deletePoolByChatId(chatId: String): Future[Actions] =
+    db.run(pools.filter(_.chatId === chatId).delete.transactionally).map {
+      case 1 => Deleted()
+      case _ => AlreadyDeleted()
+    }
 
-  //NotVoted,Completed, return users  and his action
-  // TODO
-  def getResult(chatId: String): (Future[Actions], Future[Seq[(User, Actions)]]) = ???
+
+  /**
+    * evaluate result for chat and return Action wit seq of users and they actions
+    * (Completed/NotVoted)
+    * if all voted then  return      Future [
+    * Result(result) and sequence of users with Voted]
+    * otherwise Future[ NotVoted with seq of users and they actions - Voted/NotVoted]
+    **/
+  def getResult(chatId: String): Future[(Actions, Seq[(User, Actions)])] = {
+    val qPoolId = pools.filter(_.chatId === chatId).map(_.id).result.headOption
+    val c = qPoolId.flatMap {
+      case Some(id) =>
+        val seq = (for {
+          (user, vote) <- users join votes.filter(_.poolId === id) on (_.id === _.userId)
+        } yield (vote.choice, user.telegramId, user.privateChatId)
+          ).result
+        seq
+      case _ => DBIO.successful(Seq.empty[(String, String, String)])
+    }.map {
+      case xs if xs.isEmpty => (NotExistingPool(), Seq.empty[(User, Actions)])
+      case xs if xs.forall(_._1 != defaultString) =>
+        val result = evaluateResult(xs.map(_._1))
+        val usersAndActions = xs.map(x => (User(x._2, x._3), Voted()))
+        (Result(result), usersAndActions)
+      case xs =>
+        (
+          NotVoted(),
+          xs.map(x =>
+            if (x._1 == defaultString) (User(x._2, x._3), NotVoted())
+            else (User(x._2, x._3), Voted())
+          )
+        )
+    }
+    db.run(c.transactionally)
+  }
 
   /** Ignore unvoted  persons and return evaluated result
     * Return: Future[NotExistingPool()] or Future[Result(string)]

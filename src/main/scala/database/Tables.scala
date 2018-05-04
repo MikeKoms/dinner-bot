@@ -72,6 +72,7 @@ class Votes(tag: Tag) extends Table[Vote](tag, "VOTES") {
     user => user.id, onDelete = ForeignKeyAction.NoAction
   )
 
-  def pool = foreignKey("FK_POOL", poolId, TableQuery[Pools])(_.id)
+  def pool = foreignKey("FK_POOL", poolId, TableQuery[Pools])(_.id,
+    onDelete = ForeignKeyAction.Cascade)
 }
 

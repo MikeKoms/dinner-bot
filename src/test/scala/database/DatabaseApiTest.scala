@@ -179,12 +179,61 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
 
   "Get Creator of not existing pool " should "return none" in {
     api.getCreatorByChatId("fake").futureValue shouldBe None
+  }
+
+  "Get all users from exisiting pool" should "return users " in {
+    api.getUsersByChatId("chatid1")
+      .futureValue shouldBe Some(Vector(
+      User("nikita", "123", None),
+      User("vova", "456", None)
+    )
+    )
+  }
+
+  "Get all users from unexisiting pool" should "return None " in {
+    api.getUsersByChatId("fake").futureValue shouldBe None
+  }
+
+  "Get result from unfinished pool" should " return action with users and they actions" in {
+    val res = api.getResult("chatid4").futureValue
+    res._2 should contain theSameElementsAs Vector(
+      (User("mike", "010", None), NotVoted()),
+      (User("nikita", "123", None), Voted()),
+      (User("vova", "456", None), NotVoted()),
+      (User("semen", "789", None), NotVoted())
+    )
+
 
   }
 
 
-}
+  "Get result from finished pool" should " return action with users and they actions and delete this pool" in {
+    api.getResult("chatid3").futureValue shouldBe(
+      Result("italy"),
+      Vector(
+        (User("nikita", "123", None), Voted())
+      )
+    )
+  }
 
+  "Get result from unexisting pool" should " return action and empty list" in {
+    api.getResult("fake").futureValue shouldBe
+      (NotExistingPool(), List())
+  }
+  "Delete pool3 by existing chatId" should "delete pool and associated with him votes" in{
+    val id:Long = 3
+    val deleted = api.deletePoolByChatId("chatid3").futureValue
+    api.db.run(votes.filter(_.poolId===id).map(_.id).result).futureValue shouldBe Seq.empty[Long]
+  }
+
+  "Delete pool4 by  existing chatId" should "delete pool and associated with him votes" in{
+    val id:Long = 4
+    val deleted = api.deletePoolByChatId("chatid4").futureValue
+    api.db.run(votes.filter(_.poolId===id).map(_.id).result).futureValue shouldBe Seq.empty[Long]
+  }
+
+
+}
 
 
 
