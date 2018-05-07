@@ -26,3 +26,5 @@ flywayUrl :=  "jdbc:h2:./prod"
 flywayUser := "root"
 flywayPassword := "secret"
 flywayLocations += "classpath:db/migration"
+
+parallelExecution in Test := false
