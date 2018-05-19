@@ -32,9 +32,12 @@ case class NotVoted() extends Actions
 
 case class Voted() extends Actions
 
+trait Api
+
 //for production = "prod"
-class DatabaseApi(dbname: String = "prod") {
-  //type Category = String
+class DatabaseApi(dbname: String = "prod") extends Api {
+  type Category = String
+
   import T._
 
   val db = Database.forConfig(dbname)
@@ -84,7 +87,7 @@ class DatabaseApi(dbname: String = "prod") {
   /** Update or create vote
     * Return NotExistingUserAndPool() or NotExistingUser()
     * or NotExistingPool() or Completed()  */
-  def voteInsertOrUpdate(user: User, choice: String, chatId: String): Future[Actions] = {
+  def voteInsertOrUpdate(user: User, choice: Category, chatId: String): Future[Actions] = {
     val qUserId = users.filter(_.telegramId === user.telegramId).map(_.id).result.headOption
     val qPoolId = pools.filter(_.chatId === chatId).map(_.id).result.headOption
     val zipped = qUserId zip qPoolId
@@ -153,8 +156,9 @@ class DatabaseApi(dbname: String = "prod") {
 
   /**
     * Set flag isFinished for this pool = True
+    * Return number of updated rows
     */
-  def finishPool(chatId: String) = {
+  def finishPool(chatId: String): Future[Int] = {
     val action = pools.filter(_.chatId === chatId).map(_.isFinished).update(true).transactionally
     db.run(action)
   }
@@ -231,5 +235,4 @@ class DatabaseApi(dbname: String = "prod") {
 
   private def evaluateResult(seq: Seq[String]) =
     seq.groupBy(identity).maxBy(_._2.size)._1
-
 }
