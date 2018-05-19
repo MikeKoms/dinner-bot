@@ -243,6 +243,17 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
   }
 
 
+  "Get Flag for unexisting pool by chat id" should "return flag" in{
+    val chatId = "fake"
+    api.getStatusOfPool(chatId).futureValue  shouldBe None
+  }
+
+  "Get Flag for existing pool by chat id" should "return flag" in{
+    val chatId = "chatid1"
+    api.getStatusOfPool(chatId).futureValue  shouldBe Some(true)
+  }
+
+
 
 }
 

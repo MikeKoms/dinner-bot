@@ -163,6 +163,9 @@ class DatabaseApi(dbname: String = "prod") extends Api {
     db.run(action)
   }
 
+  def getStatusOfPool(chatId: String): Future[Option[Boolean]] =
+    db.run(pools.filter(_.chatId === chatId).map(_.isFinished).result.headOption.transactionally)
+
   /**
     * Evaluate result for chat and return Action with seq of users and they actions
     * (Completed/NotVoted)
