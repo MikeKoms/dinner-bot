@@ -1,6 +1,6 @@
 package telegramAPI
 
-import akka.actor.Actor
+import secrets._
 import database.T.defaultString
 import info.mukel.telegrambot4s.api._
 import info.mukel.telegrambot4s.api.declarative._
@@ -10,9 +10,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import database.{User, _}
 import info.mukel.telegrambot4s.methods.SendMessage
 
+
 object DinnerBot extends App{
   val countries = Seq("China", "Russia", "America", "Japan")
-  val inst = new DinnerBot("493192045:AAEbw_bpNufJ4NeJGRpcVM8R1fWO3qC-ZEY").run()
+  val inst = new DinnerBot(Telegram.TOKEN).run()
 
 }
 

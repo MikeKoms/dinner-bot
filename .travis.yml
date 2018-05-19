@@ -7,6 +7,9 @@ before_script:
 - echo "  client_id=$FOURSQUARE_CLIENT_ID" >> src/main/resources/secrets.conf
 - echo "  client_secret=$FOURSQUARE_CLIENT_SECRET" >> src/main/resources/secrets.conf
 - echo "}" >> src/main/resources/secrets.conf
+- echo "telegram {" >> src/main/resources/secrets.conf
+- echo "  tg_token=$TELEGRAM_TOKEN" >> src/main/resources/secrets.conf
+- echo "}" >> src/main/resources/secrets.conf
 deploy:
   provider: heroku
   api_key:
