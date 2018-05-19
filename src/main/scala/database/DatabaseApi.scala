@@ -32,9 +32,12 @@ case class NotVoted() extends Actions
 
 case class Voted() extends Actions
 
+trait Api
+
 //for production = "prod"
-class DatabaseApi(dbname: String = "prod") {
-  //type Category = String
+class DatabaseApi(dbname: String = "prod") extends Api {
+  type Category = String
+
   import T._
 
   val db = Database.forConfig(dbname)
@@ -84,7 +87,7 @@ class DatabaseApi(dbname: String = "prod") {
   /** Update or create vote
     * Return NotExistingUserAndPool() or NotExistingUser()
     * or NotExistingPool() or Completed()  */
-  def voteInsertOrUpdate(user: User, choice: String, chatId: String): Future[Actions] = {
+  def voteInsertOrUpdate(user: User, choice: Category, chatId: String): Future[Actions] = {
     val qUserId = users.filter(_.telegramId === user.telegramId).map(_.id).result.headOption
     val qPoolId = pools.filter(_.chatId === chatId).map(_.id).result.headOption
     val zipped = qUserId zip qPoolId
@@ -134,7 +137,7 @@ class DatabaseApi(dbname: String = "prod") {
 
   /** Added vote for user in pool
     * Return Seq[Future [Actions] ]
-    * Possibly Actions view in  voteInsertOrUpdate */
+    * Possibly Actions view in voteInsertOrUpdate */
   def updatePool(chatId: String, users_arg: Seq[User]): Seq[Future[Actions]] =
     users_arg.map(user =>
       voteInsertOrUpdate(user, defaultString, chatId)
@@ -143,7 +146,7 @@ class DatabaseApi(dbname: String = "prod") {
   /**
     * Delete Pool by id and associated with him votes
     * return Deleted()/AlreadyDeleted()
-    * Run after you got resutl
+    * Recommendation: Run after you got result
     **/
   def deletePoolByChatId(chatId: String): Future[Actions] =
     db.run(pools.filter(_.chatId === chatId).delete.transactionally).map {
@@ -151,12 +154,19 @@ class DatabaseApi(dbname: String = "prod") {
       case _ => AlreadyDeleted()
     }
 
+  /**
+    * Set flag isFinished for this pool = True
+    * Return number of updated rows
+    */
+  def finishPool(chatId: String): Future[Int] = {
+    val action = pools.filter(_.chatId === chatId).map(_.isFinished).update(true).transactionally
+    db.run(action)
+  }
 
   /**
-    * evaluate result for chat and return Action wit seq of users and they actions
+    * Evaluate result for chat and return Action with seq of users and they actions
     * (Completed/NotVoted)
-    * if all voted then  return      Future [
-    * Result(result) and sequence of users with Voted]
+    * if all voted then  return  Future [Result(result) and sequence of users with Voted]
     * otherwise Future[ NotVoted with seq of users and they actions - Voted/NotVoted]
     **/
   def getResult(chatId: String): Future[(Actions, Seq[(User, Actions)])] = {
@@ -220,11 +230,9 @@ class DatabaseApi(dbname: String = "prod") {
         x => x.chatId === chatId).exists.result
   }
 
-
   private def createVoteAction(poolId: Long, userId: Long) =
     votes += Vote(poolId, userId, defaultString)
 
   private def evaluateResult(seq: Seq[String]) =
     seq.groupBy(identity).maxBy(_._2.size)._1
-
 }

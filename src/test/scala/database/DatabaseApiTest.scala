@@ -207,7 +207,7 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
   }
 
 
-  "Get result from finished pool" should " return action with users and they actions and delete this pool" in {
+  "Get result from finished pool" should " return action with users and they actions" in {
     api.getResult("chatid3").futureValue shouldBe(
       Result("italy"),
       Vector(
@@ -231,6 +231,17 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
     val deleted = api.deletePoolByChatId("chatid4").futureValue
     api.db.run(votes.filter(_.poolId===id).map(_.id).result).futureValue shouldBe Seq.empty[Long]
   }
+
+  "Set Flag for unexisting pool by chat id" should "not update anything" in{
+    val chatId = "fake"
+    api.finishPool(chatId).futureValue shouldBe 0
+  }
+
+  "Set Flag for existing pool by chat id" should "set flag" in{
+    val chatId = "chatid1"
+    api.finishPool(chatId).futureValue  shouldBe 1
+  }
+
 
 
 }
