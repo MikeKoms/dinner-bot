@@ -15,12 +15,11 @@ lazy val TgAPI = Seq(
 enablePlugins(FlywayPlugin)
 resolvers += Resolver.jcenterRepo
 
-libraryDependencies ++= Seq(
+lazy val db = Seq(
   "com.typesafe.slick" %% "slick" % "3.2.0",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "com.typesafe.slick" %% "slick-hikaricp" % "3.2.0",
-  "com.h2database" % "h2" % "1.4.197",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+  "com.h2database" % "h2" % "1.4.197"
 )
 
 flywayUrl :=  "jdbc:h2:./prod"
@@ -40,6 +39,11 @@ lazy val dinnerBot = (project in file(".")).
 
     libraryDependencies += "com.typesafe" % "config" % "1.3.2",
 
-libraryDependencies += "com.typesafe.akka" %% "akka-http"   % "10.1.1"
+    libraryDependencies ++= test,
+    libraryDependencies ++= TgAPI,
+    libraryDependencies ++= db
+
+  )
+/*libraryDependencies += "com.typesafe.akka" %% "akka-http"   % "10.1.1"
 libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.11"
-libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1"
+libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1"*/
