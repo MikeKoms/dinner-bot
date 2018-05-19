@@ -1,3 +1,5 @@
 .idea
-target
 project/target
+project/boot
+target/
+src/main/resources/secrets.conf

@@ -1,15 +1,16 @@
-name := "dinner-bot"
+lazy val test = Seq(
+  "org.scalactic" %% "scalactic" % "3.0.1",
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+  "org.scalamock" %% "scalamock" % "4.1.0" % "test"
+)
 
-version := "0.1"
-
-scalaVersion := "2.12.5"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-http"   % "10.1.1"
-libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.11"
-libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1"
-
-
-libraryDependencies += "info.mukel" %% "telegrambot4s" % "3.0.14"
+lazy val TgAPI = Seq(
+  "com.typesafe.akka" %% "akka-http"   % "10.1.1",
+  "com.typesafe.akka" %% "akka-stream" % "2.5.11",
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
+  "info.mukel" %% "telegrambot4s" % "3.0.14"
+)
 
 enablePlugins(FlywayPlugin)
 resolvers += Resolver.jcenterRepo
@@ -28,3 +29,17 @@ flywayPassword := "secret"
 flywayLocations += "classpath:db/migration"
 
 parallelExecution in Test := false
+
+lazy val dinnerBot = (project in file(".")).
+  settings(
+    inThisBuild(List(
+      name         := "dinner-bot",
+      scalaVersion := "2.12.5"
+    )),
+    name := "dinner-bot",
+
+    libraryDependencies += "com.typesafe" % "config" % "1.3.2",
+
+libraryDependencies += "com.typesafe.akka" %% "akka-http"   % "10.1.1"
+libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.11"
+libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1"
