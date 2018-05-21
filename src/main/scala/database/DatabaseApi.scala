@@ -166,6 +166,15 @@ class DatabaseApi(dbname: String = "prod") extends Api {
   def getStatusOfPool(chatId: String): Future[Option[Boolean]] =
     db.run(pools.filter(_.chatId === chatId).map(_.isFinished).result.headOption.transactionally)
 
+  def getChatIdByCreatorTelegram(telegramId: String): Future[Option[String]] = {
+    var action = users.filter(_.telegramId === telegramId).map(_.id).result.headOption
+      .flatMap {
+        case Some(id) => pools.filter(_.creatorId === id).map(_.chatId).result.headOption
+        case _ => DBIO.successful(None)
+      }
+    db.run(action.transactionally)
+  }
+
   /**
     * Evaluate result for chat and return Action with seq of users and they actions
     * (Completed/NotVoted)
@@ -232,6 +241,7 @@ class DatabaseApi(dbname: String = "prod") extends Api {
       pools.filter(
         x => x.chatId === chatId).exists.result
   }
+
 
   private def createVoteAction(poolId: Long, userId: Long) =
     votes += Vote(poolId, userId, defaultString)
