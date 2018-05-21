@@ -6,10 +6,12 @@ import info.mukel.telegrambot4s.api._
 import info.mukel.telegrambot4s.api.declarative._
 import info.mukel.telegrambot4s.models._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import database.{User, _}
 import info.mukel.telegrambot4s.methods.{SendLocation, SendMessage}
 import places.foursquare.{Venue, _}
+
+import scala.concurrent.duration.Duration
 
 
 
@@ -20,7 +22,17 @@ object DinnerBot extends App{
                       "Итальянская кухня" -> Categories.italian,
                       "Японская кухня" -> Categories.japanese)
 
-  val inst = new DinnerBot(Telegram.TOKEN).run()
+  //val inst = new DinnerBot(Telegram.TOKEN).run()
+  import slick.jdbc.H2Profile.api._
+
+  val users = TableQuery[Users]
+  val votes = TableQuery[Votes]
+  val pools = TableQuery[Pools]
+  lazy val api = new DatabaseApi("test")
+  val schema = users.schema ++ votes.schema ++ pools.schema
+  Await.result(api.db.run(schema.create), Duration.Inf)
+
+  val inst = new DinnerBot(Telegram.TOKEN, api).run()
 
 
 }
