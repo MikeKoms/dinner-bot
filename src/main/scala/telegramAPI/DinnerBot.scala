@@ -8,16 +8,26 @@ import info.mukel.telegrambot4s.models._
 
 import scala.concurrent.{ExecutionContext, Future}
 import database.{User, _}
-import info.mukel.telegrambot4s.methods.SendMessage
+import info.mukel.telegrambot4s.methods.{SendLocation, SendMessage}
+import places.foursquare.{Venue, _}
+
 
 
 object DinnerBot extends App{
-  val countries = Seq("China", "Russia", "America", "Japan")
+  val countries = Seq("Кафе и рестораны", "Фастфуд" , "Итальянская кухня", "Японская кухня")
+  val categories = Map("Кафе и рестораны" -> Categories.cafeAndRestaurants,
+                      "Фастфуд" -> Categories.fastFood,
+                      "Итальянская кухня" -> Categories.italian,
+                      "Японская кухня" -> Categories.japanese)
+
   val inst = new DinnerBot(Telegram.TOKEN).run()
+
 
 }
 
-class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseApi) extends ExampleBot(token)
+class DinnerBot(token: String,
+                databaseApi: DatabaseApi = new database.DatabaseApi,
+                foursquareApi: FoursquareService = new FoursquareService) extends ExampleBot(token)
   with Polling
   with Commands
   with BotBase
@@ -51,12 +61,41 @@ class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseA
     }
   }
 
+  def foursquareResult(result: String, lng: BigDecimal, lat: BigDecimal) = {
+    foursquareApi.categoriesInRadius(lat, lng, 1000, Seq(DinnerBot.categories(result)))
+  }
+
+  /** end of the poll
+    * @param chatID
+    * @param result result of poll
+    * @return
+    */
   def endOfPoll(chatID: String, result: String) = {
+    databaseApi.finishPool(chatID)
     request(SendMessage(ChatId(chatID),
       """ Голосование завершено, спасибо! :)
-        | Осталось разобраться, где искать подходящие для вас варианты.
-        | Пришлите мне место на карте, где вы планируете оказаться.
+        |Осталось совсем немного.
       """.stripMargin))
+    val admin: Future[Option[User]] = databaseApi.getCreatorByChatId(chatID)
+    admin.flatMap{
+      case None => Future{println("Странная ошибка")}
+      case Some(userAdmin) => {
+        request(SendMessage(ChatId(userAdmin.telegramId), "Пришлите местоположение, в радиусе километра от которого вы с компанией хотите оказаться"))
+      }
+    }
+  }
+
+  def showResult(chatID: String, result: String, lng: BigDecimal, lat: BigDecimal) = {
+    val places: Future[Seq[Venue]] = foursquareResult(result, lng, lat)
+    places.map(x =>
+      x.foreach(
+        venue => {
+          request(SendMessage(ChatId(chatID), venue.name))
+          request(SendLocation(ChatId(chatID), venue.location.lat.toDouble, venue.location.lng.toDouble))
+        }
+      )
+    )
+    databaseApi.deletePoolByChatId(chatID)
   }
 
   /**
@@ -104,10 +143,10 @@ class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseA
               case _ => reply("Ошибка")
             }
           }
-          case None => reply("Возможно, вам сначала надо зарегистрироваться в боте(напишите мне в лс /register)")
+          case None => reply("Возможно, вам сначала надо зарегистрироваться в боте(напишите мне в лс /start)")
         }
       }
-      case _ => reply("Возможно, вы хотели зарегистрировать себя, а не чат. Используйте команду /register")
+      case _ => reply("Возможно, вы хотели зарегистрировать себя, а не чат. Используйте команду /start")
     }
   }
 
@@ -130,7 +169,7 @@ class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseA
               case _ => reply(msg.from.get.firstName + ", вы теперь в опросике :)")
             }
           }
-          case None => reply("Возможно, вам сначала надо зарегистрироваться в боте(напишите мне в лс /register)")
+          case None => reply("Возможно, вам сначала надо зарегистрироваться в боте(напишите мне в лс /start)")
         }
       }
       case ChatType.Private => reply("Для добавления Вас в опрос необходимо написать в чатике группы /addToPoll")
@@ -177,27 +216,38 @@ class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseA
       case _: NotExistingUser => request(SendMessage(ChatId(cbq.from.id), "Вас нет в голосовании, видимо вас исключили :("))
       case _: NotExistingPool => request(SendMessage(ChatId(cbq.from.id), "Голование закончено"))
       case _: Completed => request(SendMessage(ChatId(cbq.from.id), "Ваш голос учтен!"))
-    }).onComplete(_ => getPollResult(mess).foreach{
-      case Some(x) => endOfPoll(mess, x)
-      case None => Unit
+    }).onComplete(_ => {
+      getPollResult(mess).foreach {
+        case Some(x) => endOfPoll(mess, x)
+        case None => Unit
+      }
     })
   }
 
-  /*onMessage{ implicit msg =>
-    if (msg.location != None ){
-      getPollResult(msg.chat.id.toString).foreach{
-        case Some(x) => {
-          val latitude = msg.location.get.latitude
-          val longitude = msg.location.get.longitude
-          reply("OK")
-          //тут помещается логика взаимодействия с foursquare API
+  onMessage{ implicit msg =>
+    if (msg.location != None){
+      // здесь должна быть функция, которая вернет чатик
+      //val chatId = "-216449573"
+      val chatId = databaseApi.getChatIdByCreatorTelegram(msg.from.get.id.toString).flatMap {
+        case Some(id) => {
+          databaseApi.getStatusOfPool(id).flatMap {
+            case Some(true) => {
+              databaseApi.forceResult(id).flatMap {
+                case Result(res) => {
+                  showResult(id, res, msg.location.get.longitude, msg.location.get.latitude)
+                }
+                case NotExistingPool() => reply("Как вы вообще получили эту ошибку?")
+              }
+            }
+            case Some(false) => reply("Ввм следует сначала завершить голосование")
+            case None => reply("Здорово, спасибо за ваше местоположение")
+          }
         }
-        case None => Unit
+        case None => reply("Вы не являетесь администратором ни одного голосования ")
       }
     }
-  }*/
 
-
+  }
   /**
     * initiate end of poll before all the people have voted
     */
@@ -205,8 +255,23 @@ class DinnerBot(token: String, databaseApi: DatabaseApi = new database.DatabaseA
     val chatType = msg.chat.`type`
     chatType match {
       case ChatType.Group | ChatType.Supergroup => {
-        ???
-      }
+        val userWhoStarts = msg.from.get.id.toString
+        databaseApi.getCreatorByChatId(msg.chat.id.toString).foreach {
+          case Some(x) => {
+            if (x.telegramId == userWhoStarts) {
+              val res: Future[Actions] = databaseApi.forceResult(msg.chat.id.toString)
+              res.flatMap{
+                case Result(res) => {
+                  endOfPoll(msg.chat.id.toString, res)
+                }
+                case NotExistingPool() => reply("Что - то пошло не так, возможно никто еще не проголосовал")
+              }
+            }
+            else reply("Вы не имеете права завершать голосование")
+            }
+          case None => reply(msg.from.get.firstName + ", вас вообще нет в базе, зарегистрируйтесь, пожалуйста")
+          }
+        }
       case _ => reply("Команда доступна только в групповом чате!")
     }
   }
