@@ -253,6 +253,22 @@ class DatabaseApiTest extends FlatSpec with Matchers with ScalaFutures {
     api.getStatusOfPool(chatId).futureValue  shouldBe Some(true)
   }
 
+  "Get Chat by creator Id of existing pool " should " return chatId" in{
+    val creatorId = "vova"
+    api.getChatIdByCreatorTelegram(creatorId).futureValue shouldBe Some("chatid2")
+  }
+
+
+  "Get Chat by fake Id of existing pool " should " return None" in{
+    val creatorId = "fake"
+    api.getChatIdByCreatorTelegram(creatorId).futureValue shouldBe None
+  }
+
+  "Get Chat by creator Id of unexisting pool " should " return None" in{
+    val creatorId = "mike"
+    api.getChatIdByCreatorTelegram(creatorId).futureValue shouldBe None
+  }
+
 
 
 }
