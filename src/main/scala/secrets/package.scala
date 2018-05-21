@@ -7,4 +7,7 @@ package object secrets {
     lazy val CLIENT_ID = secretConfig.getString("foursquare.client_id")
     lazy val CLIENT_SECRET = secretConfig.getString("foursquare.client_secret")
   }
+  object Telegram {
+    lazy val TOKEN = secretConfig.getString("telegram.tg_token")
+  }
 }
