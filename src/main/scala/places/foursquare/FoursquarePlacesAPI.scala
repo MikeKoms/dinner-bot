@@ -44,21 +44,20 @@ class FoursquarePlacesAPI(val client: HttpClient) extends Json {
       if (categories.isEmpty) {
         Map[String, String]()
       } else {
-        Map("categoryId" -> categories.mkString(","))
+        Map("categoryId" -> categories.map(_.id).mkString(","))
       }
 
     val params = Map(
-      "client_id" -> CLIENT_ID,
+      "client_id"     -> CLIENT_ID,
       "client_secret" -> CLIENT_SECRET,
-      "ll" -> s"$lat,$lng",
-      "radius" -> radius.toString,
-      "v" -> date,
-      "limit" -> 5.toString
+      "ll"            -> s"$lat,$lng",
+      "radius"        -> radius.toString,
+      "v"             -> date,
+      "limit"         -> 1.toString,
+      "intent"        -> "browse"
     ) ++ catParams
 
     val req = HttpRequest(uri = Uri(API_REQUEST_PATH).withQuery(Query(params)))
-
-      println(req.uri)
 
     client.request[Root](req)
   }
