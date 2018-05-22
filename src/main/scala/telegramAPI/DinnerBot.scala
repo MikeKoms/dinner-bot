@@ -48,12 +48,13 @@ class DinnerBot(token: String,
   /**
     * Print callback buttons in chat
     * @param user The user to whom the message will be sent
-    * @param chatID ID of group chat where poll was created
+    * @param chatName ID of group chat where poll was created
     * @return object of send message
     */
-  def pollButtons(user: database.User, chatID: Long): Future[Message] = {
+  def pollButtons(user: database.User, chatID: Long, chatName: String): Future[Message] = {
+    //CHAT NAME
     val buttons = DinnerBot.countries.map(x => InlineKeyboardButton.callbackData(x, x))
-    request(SendMessage(ChatId(user.telegramId), s"Куда вы хотите? (голосование чата c id $chatID",
+    request(SendMessage(ChatId(user.telegramId), s"Куда вы хотите? \nchat info: $chatName, id $chatID",
       replyMarkup = Some(InlineKeyboardMarkup.singleColumn(buttons))))
   }
 
@@ -102,7 +103,8 @@ class DinnerBot(token: String,
     places.map(x =>
       x.foreach(
         venue => {
-          request(SendMessage(ChatId(chatID), venue.name))
+          //venue.toString - вся надежда на Гришу
+          request(SendMessage(ChatId(chatID), venue.toString))
           request(SendLocation(ChatId(chatID), venue.location.lat.toDouble, venue.location.lng.toDouble))
         }
       )
@@ -115,7 +117,7 @@ class DinnerBot(token: String,
     * Register user in database if was written in Private chat
     */
 
-  onCommand("/start") { implicit msg =>
+  onCommand("/start", "/start@ChoiceOfLunchPlaceBot") { implicit msg =>
     val chatType = msg.chat.`type`
     chatType match {
       //нужно добавить проверку из базы данных на регистрацию пользователя
@@ -138,7 +140,8 @@ class DinnerBot(token: String,
   /** register group chat in database
     * creator is remembered as creator
     */
-  onCommand("/registerGroup") { implicit msg =>
+  onCommand("/registerGroup", "/registergroup", "/registergroup@ChoiceOfLunchPlaceBot",
+          "/registerGroup@ChoiceOfLunchPlaceBot") { implicit msg =>
     val chatType = msg.chat.`type`
     chatType match {
       case ChatType.Group | ChatType.Supergroup => {
@@ -165,7 +168,8 @@ class DinnerBot(token: String,
   /**
     * register user in poll
     */
-  onCommand("/addToPoll") { implicit msg =>
+  onCommand("/addToPoll", "/addtopoll", "/addToPoll@ChoiceOfLunchPlaceBot",
+          "/addtopoll@ChoiceOfLunchPlaceBot") { implicit msg =>
     val chatType = msg.chat.`type`
     chatType match {
       case ChatType.Group | ChatType.Supergroup => {
@@ -191,7 +195,8 @@ class DinnerBot(token: String,
   /** Start poll
     * Send callback buttons to users
     */
-  onCommand("/startPoll") { implicit msg =>
+  onCommand("/startPoll", "/startpoll", "/startPoll@ChoiceOfLunchPlaceBot",
+    "/startpoll@ChoiceOfLunchPlaceBot") { implicit msg =>
     // допущение, что мы не в канале
     val userWhoStarts = msg.from.get.id.toString
     databaseApi.getCreatorByChatId(msg.chat.id.toString).foreach {
@@ -201,7 +206,7 @@ class DinnerBot(token: String,
           allUserToReply.flatMap {
             case Some(x) => {
               x.map { user =>
-                pollButtons(user, msg.chat.id)
+                pollButtons(user, msg.chat.id, msg.chat.firstName.get)
               }
               reply("Я разослал вам сообщения, голосуйте :)")
             }
@@ -263,7 +268,7 @@ class DinnerBot(token: String,
   /**
     * initiate end of poll before all the people have voted
     */
-  onCommand("/result"){ implicit msg =>
+  onCommand("/result", "/result@ChoiceOfLunchPlaceBot"){ implicit msg =>
     val chatType = msg.chat.`type`
     chatType match {
       case ChatType.Group | ChatType.Supergroup => {
