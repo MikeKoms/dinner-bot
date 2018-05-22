@@ -58,7 +58,7 @@ class FoursquarePlacesAPI(val client: HttpClient) extends Json {
 
     val req = HttpRequest(uri = Uri(API_REQUEST_PATH).withQuery(Query(params)))
 
-    println(req.uri)
+      println(req.uri)
 
     client.request[Root](req)
   }

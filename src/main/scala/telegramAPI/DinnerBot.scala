@@ -52,7 +52,6 @@ class DinnerBot(token: String,
     * @return object of send message
     */
   def pollButtons(user: database.User, chatID: Long, chatName: String): Future[Message] = {
-    //CHAT NAME
     val buttons = DinnerBot.countries.map(x => InlineKeyboardButton.callbackData(x, x))
     request(SendMessage(ChatId(user.telegramId), s"Куда вы хотите? \nchat info: $chatName, id $chatID",
       replyMarkup = Some(InlineKeyboardMarkup.singleColumn(buttons))))
