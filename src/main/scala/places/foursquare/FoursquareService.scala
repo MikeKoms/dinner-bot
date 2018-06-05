@@ -3,7 +3,8 @@ package places.foursquare
 import scala.concurrent.Future
 
 class FoursquareService {
-  import scala.concurrent.ExecutionContext.Implicits.global
+
+  import ctx.ImplicitContext._
 
   private val api = new FoursquarePlacesAPI(new JsonHttpClient())
 

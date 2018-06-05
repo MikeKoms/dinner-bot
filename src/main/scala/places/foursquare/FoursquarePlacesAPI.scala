@@ -7,10 +7,12 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.stream.ActorMaterializer
+import ctx.ImplicitContext
 import secrets._
 
 import scala.concurrent.Future
 
+private[foursquare]
 trait Json extends VenueJsonSupport {
 
   case class Root(meta: Meta, response: Response)
@@ -26,9 +28,8 @@ trait Json extends VenueJsonSupport {
 
 private[foursquare]
 class FoursquarePlacesAPI(val client: HttpClient) extends Json {
-  private implicit val system = ActorSystem()
-  private implicit val dispatcher = system.dispatcher
-  private implicit val materializer = ActorMaterializer()
+
+  import ctx.ImplicitContext._
 
   private val API_REQUEST_PATH = "https://api.foursquare.com/v2/venues/search"
   private val CLIENT_ID = Foursquare.CLIENT_ID
@@ -48,13 +49,13 @@ class FoursquarePlacesAPI(val client: HttpClient) extends Json {
       }
 
     val params = Map(
-      "client_id"     -> CLIENT_ID,
+      "client_id" -> CLIENT_ID,
       "client_secret" -> CLIENT_SECRET,
-      "ll"            -> s"$lat,$lng",
-      "radius"        -> radius.toString,
-      "v"             -> date,
-      "limit"         -> 1.toString,
-      "intent"        -> "browse"
+      "ll" -> s"$lat,$lng",
+      "radius" -> radius.toString,
+      "v" -> date,
+      "limit" -> 1.toString,
+      "intent" -> "browse"
     ) ++ catParams
 
     val req = HttpRequest(uri = Uri(API_REQUEST_PATH).withQuery(Query(params)))

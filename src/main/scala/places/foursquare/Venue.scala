@@ -7,10 +7,12 @@ case class Venue(name: String, location: Location, categories: Seq[Category]) {
   override def toString: String =
     (name +: location.toString +: categories.map(_.toString)).mkString("\n")
 }
+
 case class Location(lat: BigDecimal, lng: BigDecimal, distance: Int, formattedAddress: Seq[String]) {
   override def toString: String =
     (s"Расстояние: $distance" +: formattedAddress).mkString("\n")
 }
+
 case class Category(id: String) {
   override def toString: String = Categories.Translatioins.russian(this)
 }
