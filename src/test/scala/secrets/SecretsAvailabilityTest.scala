@@ -11,4 +11,8 @@ class SecretsAvailabilityTest extends FlatSpec with Matchers {
   it should "get CLIENT_SECRET from config" in {
     noException should be thrownBy Foursquare.CLIENT_SECRET
   }
+
+  it should "get TELEGRAM_TOKEN from config" in {
+    noException shouldBe thrownBy (Telegram.TOKEN)
+  }
 }
